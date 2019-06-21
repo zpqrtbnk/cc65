@@ -63,6 +63,7 @@ const char* CPUNames[CPU_COUNT] = {
     "huc6280",
     "m740",
     "4510",
+	"z8",
 };
 
 /* Tables with CPU instruction sets */

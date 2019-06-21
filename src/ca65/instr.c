@@ -1008,6 +1008,16 @@ static const struct {
     }
 };
 
+/* Instruction table for the z8 */
+static const struct {
+	unsigned Count;
+	InsDesc  Ins[1];
+} InsTabZ8 = {
+	sizeof(InsTabZ8.Ins) / sizeof(InsTabZ8.Ins[0]),
+	{
+		{ "NOP",  0x0000001, 0x00, 0, PutAll },
+	}
+};
 
 
 /* An array with instruction tables */
@@ -1023,6 +1033,7 @@ static const InsTable* InsTabs[CPU_COUNT] = {
     (const InsTable*) &InsTabHuC6280,
     0,                                  /* Mitsubishi 740 */
     (const InsTable*) &InsTab4510,
+	(const InsTable*) &InsTabZ8,
 };
 const InsTable* InsTab = (const InsTable*) &InsTab6502;
 
