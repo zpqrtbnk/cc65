@@ -204,6 +204,7 @@ static char GetReg8(const ExprNode* expr) {
 }
 
 static void PutZ8_IMPL(const InsDesc* Ins) {
+
 	Emit0(Ins->BaseCode);
 }
 
@@ -211,15 +212,7 @@ static void PutZ8_JUMP(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
+	if (Ins->AddrMode == 0) return;
 
 	if ((Info.AddrMode & AMZ8_ABS) > 0) {
 		Emit2(Ins->ExtCode == 0 ? 0b00110000 : 0b00110001, Info.Expr1);
@@ -230,17 +223,13 @@ static void PutZ8_JUMP(const InsDesc* Ins) {
 			Emit0((Ins->ExtCode == 0 ? 0b00001000 : 0b00001100) | r16);
 		}
 	}
-
-	ED_Done(&ED);
 }
 
 static void PutZ8_R8(const InsDesc* Ins) {
+
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
+	if (Ins->AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 	if (r8 != 0xff) {
@@ -252,36 +241,16 @@ static void PutZ8_V8(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
+	if (Ins->AddrMode == 0) return;
 
 	Emit1(Ins->BaseCode, Info.Expr1);
-
-	ED_Done(&ED);
 }
 
 static void PutZ8_RV8(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
-
-	// fixme what about expr2?
+	if (Ins->AddrMode == 0) return;
 
 	if ((Info.AddrMode & AMZ8_RREG) > 0) {
 		char r8a = GetReg8(Info.Expr1);
@@ -291,11 +260,8 @@ static void PutZ8_RV8(const InsDesc* Ins) {
 	}
 	else {
 		char r8 = GetReg8(Info.Expr1);
-
 		Emit1((Ins->ExtCode & 0b11111000) | r8, Info.Expr2);
 	}
-
-	ED_Done(&ED);
 }
 
 static void PutZ8_LDSTW(const InsDesc* Ins) {
@@ -303,15 +269,6 @@ static void PutZ8_LDSTW(const InsDesc* Ins) {
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
 	if (Ins->AddrMode == 0) return;
-
-	//if (!Info.Expr1) return;
-
-	//ExprDesc ED;
-	//ED_Init(&ED);
-	//StudyExpr(Info.Expr1, &ED);
-	//Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
-
-	// fixme what about expr2?
 
 	char r16 = GetReg16(Info.Expr1);
 
@@ -321,25 +278,13 @@ static void PutZ8_LDSTW(const InsDesc* Ins) {
 	else {
 		Emit2(Ins->ExtCode | r16, Info.Expr2);
 	}
-
-	//ED_Done(&ED);
 }
 
 static void PutZ8_ADW(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
-
-	// fixme what about expr2?
+	if (Ins->AddrMode == 0) return;
 
 	char r16 = GetReg16(Info.Expr1);
 
@@ -351,25 +296,13 @@ static void PutZ8_ADW(const InsDesc* Ins) {
 		Emit0(Ins->ExtCode);
 		Emit0((r8 << 5) | (r16 << 3));
 	}
-
-	ED_Done(&ED);
 }
 
 static void PutZ8_STR(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
-
-	// fixme what about expr2?
+	if (Ins->AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 
@@ -380,23 +313,13 @@ static void PutZ8_STR(const InsDesc* Ins) {
 		char r16 = GetReg16(Info.Expr2);
 		Emit0(Ins->ExtCode | (r16 << 3) | r8);
 	}
-
-	ED_Done(&ED);
 }
 
 static void PutZ8_LDR(const InsDesc* Ins)
 {
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-
-	// fixme error in eval?
-
-	if (!Info.Expr1) return;
-
-	ExprDesc ED;
-	ED_Init(&ED);
-	StudyExpr(Info.Expr1, &ED);
-	Info.Expr1 = SimplifyExpr(Info.Expr1, &ED);
+	if (Ins->AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 
@@ -415,6 +338,4 @@ static void PutZ8_LDR(const InsDesc* Ins)
 	else { // _RIMM
 		Emit1(0x80, Info.Expr2);
 	}
-
-	ED_Done(&ED);
 }
