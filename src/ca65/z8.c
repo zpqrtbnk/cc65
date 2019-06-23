@@ -20,6 +20,7 @@ static void PutZ8_LDSTW(const InsDesc* Ins);   // ldw and stw
 static void PutZ8_ADW(const InsDesc* Ins);     // adw
 static void PutZ8_STR(const InsDesc* Ins);     // str
 static void PutZ8_LDR(const InsDesc* Ins);     // ldr
+static void PutZ8_BRANCH(const InsDesc* Ins);  // all relative branches
 
 /* Instruction table for the z8 */
 const InsTabZ8_t InsTabZ8 = {
@@ -31,13 +32,13 @@ const InsTabZ8_t InsTabZ8 = {
 		{ "ADW", AMZ8_RREG|AMZ8_RIMM, 0x1C, 0x1A, PutZ8_ADW },
 		{ "AND", AMZ8_RIMM|AMZ8_RREG, 0x11, 0b10101001, PutZ8_RV8 },
 		{ "ASL", AMZ8_REG, 0x70, 0, PutZ8_R8 },
-		{ "BCC", AMZ8_REL, 0x12, 0, PutZ8_V8 },
-		{ "BCS", AMZ8_REL, 0x13, 0, PutZ8_V8 },
-		{ "BEQ", AMZ8_REL, 0x15, 0, PutZ8_V8 },
+		{ "BCC", AMZ8_ABS|AMZ8_IMM, 0x12, 0, PutZ8_BRANCH },
+		{ "BCS", AMZ8_ABS|AMZ8_IMM, 0x13, 0, PutZ8_BRANCH },
+		{ "BEQ", AMZ8_ABS|AMZ8_IMM, 0x15, 0, PutZ8_BRANCH },
 		{ "BIT", AMZ8_RIMM|AMZ8_RREG, 0x10, 0b10001001, PutZ8_RV8 },
-		{ "BMI", AMZ8_REL, 0x16, 0, PutZ8_V8 },
-		{ "BNE", AMZ8_REL, 0x14, 0, PutZ8_V8 },
-		{ "BPL", AMZ8_REL, 0x17, 0, PutZ8_V8 },
+		{ "BMI", AMZ8_ABS|AMZ8_IMM, 0x16, 0, PutZ8_BRANCH },
+		{ "BNE", AMZ8_ABS|AMZ8_IMM, 0x14, 0, PutZ8_BRANCH },
+		{ "BPL", AMZ8_ABS|AMZ8_IMM, 0x17, 0, PutZ8_BRANCH },
 		{ "BRK", AMZ8_IMPL, 0x00, 0, PutZ8_IMPL },
 		{ "CLF", AMZ8_IMM, 0x19, 0, PutZ8_V8 },
 		{ "CMP", AMZ8_RIMM|AMZ8_RREG, 0x10, 0b10010010, PutZ8_RV8 },
@@ -71,7 +72,7 @@ struct InsInfo {
 	ExprNode* Expr2;
 };
 
-static void EvalInfo(const InsDesc* Ins, InsInfo* Info) {
+static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 
 	token_t IndirectEnter;
 	token_t IndirectLeave;
@@ -140,8 +141,10 @@ static void EvalInfo(const InsDesc* Ins, InsInfo* Info) {
 		}
 	}
 	else {
-		Info->Expr1 = Expression(); // has to be an 8bit offset or 16bit address
-		Info->AddrMode = AMZ8_ABS | AMZ8_REL;
+		// fixme but EmitPcRel will read the expression!
+		if (!noExpr)
+			Info->Expr1 = Expression(); // has to be an 8bit offset or 16bit address
+		Info->AddrMode = AMZ8_ABS; // | AMZ8_REL; // fixme kill REL? would be IMM really?
 	}
 
 	Info->AddrMode &= Ins->AddrMode;
@@ -167,6 +170,10 @@ static void EvalInfo(const InsDesc* Ins, InsInfo* Info) {
 		Info->Expr2 = SimplifyExpr(Info->Expr2, &ED);
 		ED_Done(&ED);
 	}
+}
+
+static void EvalInfo(const InsDesc* Ins, InsInfo* Info) {
+	_EvalInfo(Ins, Info, 0);
 }
 
 static char GetReg16(const ExprNode* expr) {
@@ -212,7 +219,7 @@ static void PutZ8_JUMP(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	if ((Info.AddrMode & AMZ8_ABS) > 0) {
 		Emit2(Ins->ExtCode == 0 ? 0b00110000 : 0b00110001, Info.Expr1);
@@ -229,7 +236,7 @@ static void PutZ8_R8(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 	if (r8 != 0xff) {
@@ -241,16 +248,30 @@ static void PutZ8_V8(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	Emit1(Ins->BaseCode, Info.Expr1);
+}
+
+static void PutZ8_BRANCH(const InsDesc* Ins) {
+
+	InsInfo Info;
+	_EvalInfo(Ins, &Info, 1);
+	if (Info.AddrMode == 0) return;
+
+	if ((Info.AddrMode & AMZ8_IMM) > 0) {
+		Emit1(Ins->BaseCode, Info.Expr1);
+	}
+	else {
+		EmitPCRel(Ins->BaseCode, GenBranchExpr(2), 1);
+	}
 }
 
 static void PutZ8_RV8(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	if ((Info.AddrMode & AMZ8_RREG) > 0) {
 		char r8a = GetReg8(Info.Expr1);
@@ -268,7 +289,7 @@ static void PutZ8_LDSTW(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	char r16 = GetReg16(Info.Expr1);
 
@@ -284,7 +305,7 @@ static void PutZ8_ADW(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	char r16 = GetReg16(Info.Expr1);
 
@@ -302,7 +323,7 @@ static void PutZ8_STR(const InsDesc* Ins) {
 
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 
@@ -319,7 +340,7 @@ static void PutZ8_LDR(const InsDesc* Ins)
 {
 	InsInfo Info;
 	EvalInfo(Ins, &Info);
-	if (Ins->AddrMode == 0) return;
+	if (Info.AddrMode == 0) return;
 
 	char r8 = GetReg8(Info.Expr1);
 
