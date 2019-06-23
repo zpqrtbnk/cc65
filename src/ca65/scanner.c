@@ -1494,6 +1494,14 @@ CharAgain:
             CurTok.Tok = TOK_SEP;
             return;
 
+		case '`':
+			if (CPU == CPU_Z8) {
+				NextChar();
+				CurTok.Tok = TOK_BACKTICK;
+				return;
+			}
+			break;
+
         case EOF:
             CheckInputStack ();
             /* In case of the main file, do not close it, but return EOF. */

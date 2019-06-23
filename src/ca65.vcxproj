@@ -116,6 +116,7 @@
     <ClInclude Include="ca65\token.h" />
     <ClInclude Include="ca65\toklist.h" />
     <ClInclude Include="ca65\ulabel.h" />
+    <ClInclude Include="ca65\z8.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ca65\anonname.c" />
@@ -158,6 +159,7 @@
     <ClCompile Include="ca65\token.c" />
     <ClCompile Include="ca65\toklist.c" />
     <ClCompile Include="ca65\ulabel.c" />
+    <ClCompile Include="ca65\z8.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
