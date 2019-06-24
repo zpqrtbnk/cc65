@@ -200,7 +200,11 @@ static void SetSys (const char* Sys)
         case TGT_NONE:
             break;
 
-        case TGT_MODULE:
+		case TGT_Z8:
+			NewSymbol("__Z8__", 1);
+			break;
+
+		case TGT_MODULE:
             AbEnd ("Cannot use 'module' as a target for the assembler");
             break;
 
@@ -1088,7 +1092,14 @@ int main (int argc, char* argv [])
     /* Define the default options */
     SetOptions ();
 
-    /* Assemble the input */
+	/* Open auto-include files */
+	if (Target == TGT_Z8)
+	{
+		//InitScanner("z8x65.inc");
+		InitScanner("z8.inc");
+	}
+	
+	/* Assemble the input */
     Assemble ();
 
     /* If we didn't have any errors, check the pseudo insn stacks */

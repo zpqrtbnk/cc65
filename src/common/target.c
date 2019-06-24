@@ -176,6 +176,7 @@ static const TargetEntry TargetMap[] = {
     {   "supervision",  TGT_SUPERVISION  },
     {   "telestrat",    TGT_TELESTRAT    },
     {   "vic20",        TGT_VIC20        },
+	{   "z8",           TGT_Z8           },
 };
 #define MAP_ENTRY_COUNT         (sizeof (TargetMap) / sizeof (TargetMap[0]))
 
@@ -183,7 +184,7 @@ static const TargetEntry TargetMap[] = {
 /* Table with target properties by target ID */
 static const TargetProperties PropertyTable[TGT_COUNT] = {
     { "none",           CPU_6502,       BINFMT_BINARY,      CTNone  },
-    { "module",         CPU_6502,       BINFMT_O65,         CTNone  },
+	{ "module",         CPU_6502,       BINFMT_O65,         CTNone  },
     { "atari",          CPU_6502,       BINFMT_BINARY,      CTAtari },
     { "atari2600",      CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "atari5200",      CPU_6502,       BINFMT_BINARY,      CTAtari },
@@ -215,6 +216,7 @@ static const TargetProperties PropertyTable[TGT_COUNT] = {
     { "gamate",         CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "c65",            CPU_4510,       BINFMT_BINARY,      CTPET   },
     { "cx16",           CPU_65C02,      BINFMT_BINARY,      CTPET   },
+	{ "z8",             CPU_Z8,         BINFMT_BINARY,      CTNone  },
 };
 
 /* Target system */
