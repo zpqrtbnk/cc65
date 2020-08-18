@@ -1098,7 +1098,7 @@ int main (int argc, char* argv [])
 		//InitScanner("z8x65.inc");
 		InitScanner("z8.inc");
 	}
-	
+
 	/* Assemble the input */
     Assemble ();
 

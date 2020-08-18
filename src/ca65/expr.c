@@ -1835,6 +1835,64 @@ ExprNode* GenBranchExpr (unsigned Offs)
 
 
 
+ExprNode* GenBranchExprN(ExprNode* N, unsigned Offs)
+/* Return an expression that encodes the difference between current PC plus
+** offset and the target expression (that is, Expression() - (*+Offs) ).
+*/
+{
+    //ExprNode* N;
+    ExprNode* Root;
+    long      Val;
+
+    /* Read Expression() */
+    N = Expression();
+
+    /* If the expression is a cheap constant, generate a simpler tree */
+    if (IsEasyConst(N, &Val)) {
+
+        /* Free the constant expression tree */
+        FreeExpr(N);
+
+        /* Generate the final expression:
+        ** Val - (* + Offs)
+        ** Val - ((Seg + PC) + Offs)
+        ** Val - Seg - PC - Offs
+        ** (Val - PC - Offs) - Seg
+        */
+        Root = GenLiteralExpr(Val - GetPC() - Offs);
+        if (GetRelocMode()) {
+            N = Root;
+            Root = NewExprNode(EXPR_MINUS);
+            Root->Left = N;
+            Root->Right = GenSectionExpr(GetCurrentSegNum());
+        }
+
+    }
+    else {
+
+        /* Generate the expression:
+        ** N - (* + Offs)
+        ** N - ((Seg + PC) + Offs)
+        ** N - Seg - PC - Offs
+        ** N - (PC + Offs) - Seg
+        */
+        Root = NewExprNode(EXPR_MINUS);
+        Root->Left = N;
+        Root->Right = GenLiteralExpr(GetPC() + Offs);
+        if (GetRelocMode()) {
+            N = Root;
+            Root = NewExprNode(EXPR_MINUS);
+            Root->Left = N;
+            Root->Right = GenSectionExpr(GetCurrentSegNum());
+        }
+    }
+
+    /* Return the result */
+    return Root;
+}
+
+
+
 ExprNode* GenULabelExpr (unsigned Num)
 /* Return an expression for an unnamed label with the given index */
 {

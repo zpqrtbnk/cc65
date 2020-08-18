@@ -1497,7 +1497,12 @@ CharAgain:
 		case '`':
 			if (CPU == CPU_Z8) {
 				NextChar();
-				CurTok.Tok = TOK_BACKTICK;
+				if (C == '`') {
+                    NextChar();
+                    CurTok.Tok = TOK_BACKTICK2;
+                } else {
+                    CurTok.Tok = TOK_BACKTICK;
+                }
 				return;
 			}
 			break;

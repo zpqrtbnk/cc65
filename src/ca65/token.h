@@ -121,6 +121,7 @@ typedef enum token_t {
 
 	/* Tokens for Z8 */
 	TOK_BACKTICK,       /* ` */
+	TOK_BACKTICK2,      /* `` */
 
     /* The next ones are tokens for the pseudo instructions. Keep together! */
     TOK_FIRSTPSEUDO,
