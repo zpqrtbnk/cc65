@@ -103,6 +103,9 @@ ExprNode* GenBranchExpr (unsigned Offs);
 ExprNode* GenBranchExprN(ExprNode* N, unsigned Offs);
 /* z8 */
 
+ExprNode* GenRegExpr(unsigned Op);
+/* z8 */
+
 ExprNode* GenULabelExpr (unsigned Num);
 /* Return an expression for an unnamed label with the given index */
 

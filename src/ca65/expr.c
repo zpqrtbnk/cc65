@@ -1893,6 +1893,15 @@ ExprNode* GenBranchExprN(ExprNode* N, unsigned Offs)
 
 
 
+ExprNode* GenRegExpr (unsigned Op)
+{
+    ExprNode* Node = NewExprNode(Op);
+    Node->Left = Expression();
+    return Node;
+}
+
+
+
 ExprNode* GenULabelExpr (unsigned Num)
 /* Return an expression for an unnamed label with the given index */
 {

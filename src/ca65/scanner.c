@@ -1497,11 +1497,15 @@ CharAgain:
 		case '`':
 			if (CPU == CPU_Z8) {
 				NextChar();
-				if (C == '`') {
+                if (C == '[') {
                     NextChar();
-                    CurTok.Tok = TOK_BACKTICK2;
+                    CurTok.Tok = TOK_REGH;
+                }
+                else if (C == ']') {
+                    NextChar();
+                    CurTok.Tok = TOK_REGL;
                 } else {
-                    CurTok.Tok = TOK_BACKTICK;
+                    CurTok.Tok = TOK_REGW;
                 }
 				return;
 			}

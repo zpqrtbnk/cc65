@@ -1459,7 +1459,15 @@ static void StudyExprInternal (ExprNode* Expr, ExprDesc* D)
             StudyNearAddr (Expr, D);
             break;
 
-        default:
+        case EXPR_REGH:
+            StudyByte0(Expr, D);
+            break;
+
+        case EXPR_REGL:
+            StudyByte0(Expr, D);
+            break;
+
+    	default:
             Internal ("Unknown Op type: %u", Expr->Op);
             break;
     }

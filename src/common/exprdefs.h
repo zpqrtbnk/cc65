@@ -101,6 +101,10 @@
 #define EXPR_DWORD              (EXPR_UNARYNODE | 0x0F)
 #define EXPR_NEARADDR           (EXPR_UNARYNODE | 0x10)
 
+/* z8 */
+#define EXPR_REGH (EXPR_UNARYNODE | 0x10)
+#define EXPR_REGL (EXPR_UNARYNODE | 0x11)
+
 
 
 /* The expression node itself */

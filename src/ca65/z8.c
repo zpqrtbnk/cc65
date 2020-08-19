@@ -7,6 +7,7 @@
 #include "global.h"
 #include "scanner.h"
 #include "nexttok.h"
+#include "expr.h"
 #include "error.h"
 #include "studyexpr.h"
 #include <addrsize.h>
@@ -20,6 +21,7 @@ static void PutZ8_RR(const InsDesc* Ins);
 static void PutZ8_STR(const InsDesc* Ins);
 static void PutZ8_LDR(const InsDesc* Ins);
 static void PutZ8_BRANCH(const InsDesc* Ins);
+static void PutZ8_SCF(const InsDesc* Ins);
 
 /* Instruction table for z8 */
 const InsTabZ8_t InsTabZ8 = {
@@ -39,13 +41,14 @@ const InsTabZ8_t InsTabZ8 = {
 		{ "BNE", AMZ8_REL, 0xb2, 0, PutZ8_BRANCH },
 		{ "BPL", AMZ8_REL, 0xb5, 0, PutZ8_BRANCH },
 		{ "BRK", AMZ8_IMPL, 0x00, 0, PutZ8_IMPL },
+		{ "CLF", AMZ8_IMM, 0xab, 0, PutZ8_SCF },
 		{ "CMP", AMZ8_RIMMB | AMZ8_RREGB, 0, 7, PutZ8_RR },
-		{ "DEC", AMZ8_REGB, 0x28, 0, PutZ8_RB },
+		{ "DEC", AMZ8_REGW | AMZ8_REGB, 0x28, 0, PutZ8_RB },
 		{ "GSR", AMZ8_REGW, 0x0c, 0, PutZ8_RW },
 		{ "HLT", AMZ8_IMPL, 0x02, 0, PutZ8_IMPL },
-		{ "INC", AMZ8_REGB, 0x20, 0, PutZ8_RB },
-		{ "JMP", AMZ8_ABS | AMZ8_IND, 0, 0, PutZ8_JUMP },
-		{ "JSR", AMZ8_ABS | AMZ8_IND, 0, 1, PutZ8_JUMP },
+		{ "INC", AMZ8_REGW | AMZ8_REGB, 0x20, 0, PutZ8_RB },
+		{ "JMP", AMZ8_IND | AMZ8_ABS, 0, 0, PutZ8_JUMP },
+		{ "JSR", AMZ8_IND | AMZ8_ABS, 0, 1, PutZ8_JUMP },
 		{ "LDR", AMZ8_RIMMB | AMZ8_RIND | AMZ8_RABSB | AMZ8_RABSW | AMZ8_RIMMW, 0, 0, PutZ8_LDR },
 		{ "LSR", AMZ8_REGB, 0x58, 0, PutZ8_RB },
 		{ "NOP", AMZ8_IMPL, 0x01, 0, PutZ8_IMPL },
@@ -56,10 +59,12 @@ const InsTabZ8_t InsTabZ8 = {
 		{ "ROR", AMZ8_REGB, 0x40, 0, PutZ8_RB },
 		{ "RTS", AMZ8_IMPL, 0x03, 0, PutZ8_IMPL },
 		{ "SSR", AMZ8_REGW, 0x10, 0, PutZ8_RW },
+		{ "STF", AMZ8_IMM, 0xaa, 0, PutZ8_SCF },
 		{ "STR", AMZ8_RIND | AMZ8_RABSB | AMZ8_RABSW, 0, 0, PutZ8_STR },
 		{ "SUB", AMZ8_RIMMB | AMZ8_RREGB | AMZ8_RREGWW | AMZ8_RREGWB | AMZ8_RIMMW, 0, 1, PutZ8_RR },
 		{ "TXR", AMZ8_RREGB, 0, 2, PutZ8_RR },
 		{ "XOR", AMZ8_RIMMB | AMZ8_RREGB, 0, 5, PutZ8_RR },
+
 	}
 };
 
@@ -77,7 +82,6 @@ static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 	token_t IndirectEnter;
 	token_t IndirectLeave;
 	const char* IndirectExpect;
-	int isW0 = 0, isW1 = 0;
 
 	/* Choose syntax for indirection */
 	if (BracketAsIndirect) {
@@ -100,67 +104,111 @@ static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 		Info->AddrMode = AMZ8_IMPL;
 	}
 
-	// # => IMM which we don't support, really
-	//else if (CurTok.Tok == TOK_HASH) {
-	//	NextTok();
-	//	Info->Expr1 = Expression(); // has to be an 8bit value
-	//	Info->AddrMode = AMZ8_IMM;
-	//}
+	// # => IMM
+	else if (CurTok.Tok == TOK_HASH) {
+		NextTok();
+		Info->Expr1 = Expression();
+		Info->AddrMode = AMZ8_IMM;
+	}
 
 	// ( or [ => IND
 	else if (CurTok.Tok == IndirectEnter) {
 		NextTok();
-		Info->Expr1 = Expression(); // has to be a reg 0,2,4,6
+		Info->Expr1 = Expression();
 		Consume(IndirectLeave, IndirectExpect);
 		Info->AddrMode = AMZ8_IND;
 	}
 
-	// ` or `` => needs to process
-	else if (CurTok.Tok == TOK_BACKTICK || CurTok.Tok == TOK_BACKTICK2) {
-
-		if (CurTok.Tok == TOK_BACKTICK2) isW0 = 1;
+	// `
+	else if (CurTok.Tok == TOK_REGW) {
 		NextTok();
 
-		Info->Expr1 = Expression(); // has to be a regB 0-7 or a regW 0-3
+		Info->Expr1 = Expression();
 
 		if (CurTok.Tok == TOK_COMMA) {
 			NextTok();
 
-			// `, # or ``, #
+			// `, #
 			if (CurTok.Tok == TOK_HASH) {
 				NextTok();
-				Info->Expr2 = Expression(); // has to be an 8bit value or a 16bit value
-				Info->AddrMode = isW0 == 0 ? AMZ8_RIMMB : AMZ8_RIMMW;
+				Info->Expr2 = Expression();
+				Info->AddrMode = AMZ8_RIMMW;
 			}
 
-			// `, () or ``, ()
-			else if (CurTok.Tok == IndirectEnter) {
+			// `, ()
+			// not supported
+
+			// `, `
+			else if (CurTok.Tok == TOK_REGW) {
 				NextTok();
-				Info->Expr2 = Expression(); // has to be a regB 0-7
-				Consume(IndirectLeave, IndirectExpect);
-				Info->AddrMode = isW0 == 0 ? AMZ8_RIND : AMZ8_ERR;
+				Info->Expr2 = Expression();
+				Info->AddrMode = AMZ8_RREGWW;
 			}
-
-			// ``, ` or ``, ``
-			else if (CurTok.Tok == TOK_BACKTICK || CurTok.Tok == TOK_BACKTICK2) {
-
-				if (CurTok.Tok == TOK_BACKTICK2) isW1 = 1;
+			// `, `[
+			else if (CurTok.Tok == TOK_REGH) {
 				NextTok();
-
-				Info->Expr2 = Expression(); // has to be a regB 0-7 or a regW 0-3
-				Info->AddrMode = isW0 == 0
-					? isW1 == 0 ? AMZ8_RREGB : AMZ8_ERR
-					: isW1 == 0 ? AMZ8_RREGWB : AMZ8_RREGWW;
+				Info->Expr2 = GenRegExpr(EXPR_REGH);
+				Info->AddrMode = AMZ8_RREGWB;
 			}
-
-			// `, a or ``, a
+			// `, `]
+			else if (CurTok.Tok == TOK_REGL) {
+				NextTok();
+				Info->Expr2 = GenRegExpr(EXPR_REGL);
+				Info->AddrMode = AMZ8_RREGWB;
+			}
+			// `, a
 			else {
-				Info->Expr2 = Expression(); // has to be a 16bit address
-				Info->AddrMode = isW0 == 0 ? AMZ8_RABSB : AMZ8_RABSW;
+				Info->Expr2 = Expression();
+				Info->AddrMode = AMZ8_RABSW;
 			}
 		}
 		else {
-			Info->AddrMode = isW0 == 0 ? AMZ8_REGB : AMZ8_REGW;
+			Info->AddrMode = AMZ8_REGW;
+		}
+	}
+
+	// `[]
+	else if (CurTok.Tok == TOK_REGH || CurTok.Tok == TOK_REGL) {
+		NextTok();
+
+		Info->Expr1 = GenRegExpr(CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH);
+
+		if (CurTok.Tok == TOK_COMMA) {
+			NextTok();
+
+			// `[], #
+			if (CurTok.Tok == TOK_HASH) {
+				NextTok();
+				Info->Expr2 = Expression();
+				Info->AddrMode = AMZ8_RIMMB;
+			}
+
+			// `[], ()
+			else if (CurTok.Tok == IndirectEnter) {
+				NextTok();
+				Info->Expr2 = Expression();
+				Consume(IndirectLeave, IndirectExpect);
+				Info->AddrMode = AMZ8_RIND;
+			}
+
+			// `[], `
+			// not supported
+
+			// `[], `[]
+			else if (CurTok.Tok == TOK_REGH || CurTok.Tok == TOK_REGL) {
+				NextTok();
+				Info->Expr2 = GenRegExpr(CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH);
+				Info->AddrMode = AMZ8_RREGWB;
+			}
+
+			// `[], a
+			else {
+				Info->Expr2 = Expression();
+				Info->AddrMode = AMZ8_RABSB;
+			}
+		}
+		else {
+			Info->AddrMode = AMZ8_REGB;
 		}
 	}
 
@@ -426,10 +474,18 @@ static void PutZ8_LDR(const InsDesc* Ins) {
 		Emit1(0x60 | r0B, Info.Expr2);
 	}
 	else if ((Info.AddrMode & AMZ8_RIMMW) > 0) {
-		char r0W = GetRegW(Info.Expr2);
+		char r0W = GetRegW(Info.Expr1);
 		Emit2(0xfc | r0W, Info.Expr2);
 	}
 	else {
 		Error("Unsupported addressing mode %x.", Info.AddrMode);
 	}
+}
+
+static void PutZ8_SCF(const InsDesc* Ins) {
+	InsInfo Info;
+	EvalInfo(Ins, &Info);
+	if (Info.AddrMode == 0) return;
+
+	Emit1(Ins->BaseCode, Info.Expr1);
 }

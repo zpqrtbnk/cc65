@@ -222,7 +222,15 @@ static void InternalDumpExpr (const ExprNode* Expr, const ExprNode* (*ResolveSym
             printf (" NEARADDR");
             break;
 
-        default:
+        case EXPR_REGH:
+            printf(" REGH");
+            break;
+
+        case EXPR_REGL:
+            printf(" REGL");
+            break;
+
+    	default:
             AbEnd ("Unknown Op type: %u", Expr->Op);
 
     }
