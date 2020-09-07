@@ -6,7 +6,7 @@
 #include "instr.h"
 
 // size of z8 instructions table
-#define INSTABZ8_COUNT 34
+#define INSTABZ8_COUNT 36
 
 // define z8 instructions table
 typedef struct {

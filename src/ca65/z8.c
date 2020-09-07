@@ -17,6 +17,7 @@ static void PutZ8_IMPL(const InsDesc* Ins);
 static void PutZ8_JUMP(const InsDesc* Ins);
 static void PutZ8_RB(const InsDesc* Ins);
 static void PutZ8_RW(const InsDesc* Ins);
+static void PutZ8_RBW(const InsDesc* Ins);
 static void PutZ8_RR(const InsDesc* Ins);
 static void PutZ8_STR(const InsDesc* Ins);
 static void PutZ8_LDR(const InsDesc* Ins);
@@ -43,25 +44,27 @@ const InsTabZ8_t InsTabZ8 = {
 		{ "BRK", AMZ8_IMPL, 0x00, 0, PutZ8_IMPL },
 		{ "CLF", AMZ8_IMM, 0xab, 0, PutZ8_SCF },
 		{ "CMP", AMZ8_RIMMB | AMZ8_RREGB, 0, 7, PutZ8_RR },
-		{ "DEC", AMZ8_REGW | AMZ8_REGB, 0x28, 0, PutZ8_RB },
+		{ "DEC", AMZ8_REGW | AMZ8_REGB, 0, 0, PutZ8_RB },
 		{ "GSR", AMZ8_REGW, 0x0c, 0, PutZ8_RW },
 		{ "HLT", AMZ8_IMPL, 0x02, 0, PutZ8_IMPL },
-		{ "INC", AMZ8_REGW | AMZ8_REGB, 0x20, 0, PutZ8_RB },
+		{ "INC", AMZ8_REGW | AMZ8_REGB, 0, 1, PutZ8_RBW },
 		{ "JMP", AMZ8_IND | AMZ8_ABS, 0, 0, PutZ8_JUMP },
 		{ "JSR", AMZ8_IND | AMZ8_ABS, 0, 1, PutZ8_JUMP },
 		{ "LDR", AMZ8_RIMMB | AMZ8_RIND | AMZ8_RABSB | AMZ8_RABSW | AMZ8_RIMMW, 0, 0, PutZ8_LDR },
 		{ "LSR", AMZ8_REGB, 0x58, 0, PutZ8_RB },
 		{ "NOP", AMZ8_IMPL, 0x01, 0, PutZ8_IMPL },
 		{ "OR", AMZ8_RIMMB | AMZ8_RREGB, 0, 4, PutZ8_RR },
-		{ "PLL", AMZ8_REGB, 0x38, 0, PutZ8_RB },
-		{ "PSH", AMZ8_REGB, 0x30, 0, PutZ8_RB },
+		{ "PLF", AMZ8_REGB, 0x17, 0, PutZ8_IMPL },
+		{ "PLR", AMZ8_REGB, 0x38, 0, PutZ8_RB },
+		{ "PSF", AMZ8_REGB, 0x16, 0, PutZ8_IMPL },
+		{ "PSR", AMZ8_REGB, 0x30, 0, PutZ8_RB },
 		{ "ROL", AMZ8_REGB, 0x48, 0, PutZ8_RB },
 		{ "ROR", AMZ8_REGB, 0x40, 0, PutZ8_RB },
 		{ "RTS", AMZ8_IMPL, 0x03, 0, PutZ8_IMPL },
 		{ "SSR", AMZ8_REGW, 0x10, 0, PutZ8_RW },
 		{ "STF", AMZ8_IMM, 0xaa, 0, PutZ8_SCF },
 		{ "STR", AMZ8_RIND | AMZ8_RABSB | AMZ8_RABSW, 0, 0, PutZ8_STR },
-		{ "SUB", AMZ8_RIMMB | AMZ8_RREGB | AMZ8_RREGWW | AMZ8_RREGWB | AMZ8_RIMMW, 0, 1, PutZ8_RR },
+		{ "SUB", AMZ8_RIMMB | AMZ8_RREGB | AMZ8_RREGWW | AMZ8_RREGWB | AMZ8_RIMMW, 0, 1, PutZ8_RBW },
 		{ "TXR", AMZ8_RREGB, 0, 2, PutZ8_RR },
 		{ "XOR", AMZ8_RIMMB | AMZ8_RREGB, 0, 5, PutZ8_RR },
 
@@ -144,16 +147,11 @@ static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 				Info->Expr2 = Expression();
 				Info->AddrMode = AMZ8_RREGWW;
 			}
-			// `, `[
-			else if (CurTok.Tok == TOK_REGH) {
+			// `, `[]
+			else if (CurTok.Tok == TOK_REGH || CurTok.Tok == TOK_REGL) {
+				unsigned op = CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH;
 				NextTok();
-				Info->Expr2 = GenRegExpr(EXPR_REGH);
-				Info->AddrMode = AMZ8_RREGWB;
-			}
-			// `, `]
-			else if (CurTok.Tok == TOK_REGL) {
-				NextTok();
-				Info->Expr2 = GenRegExpr(EXPR_REGL);
+				Info->Expr2 = GenRegExpr(op);
 				Info->AddrMode = AMZ8_RREGWB;
 			}
 			// `, a
@@ -169,9 +167,11 @@ static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 
 	// `[]
 	else if (CurTok.Tok == TOK_REGH || CurTok.Tok == TOK_REGL) {
+
+		unsigned op = CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH;
 		NextTok();
 
-		Info->Expr1 = GenRegExpr(CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH);
+		Info->Expr1 = GenRegExpr(op);
 
 		if (CurTok.Tok == TOK_COMMA) {
 			NextTok();
@@ -196,8 +196,9 @@ static void _EvalInfo(const InsDesc* Ins, InsInfo* Info, char noExpr) {
 
 			// `[], `[]
 			else if (CurTok.Tok == TOK_REGH || CurTok.Tok == TOK_REGL) {
+				op = CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH;
 				NextTok();
-				Info->Expr2 = GenRegExpr(CurTok.Tok == TOK_REGL ? EXPR_REGL : EXPR_REGH);
+				Info->Expr2 = GenRegExpr(op);
 				Info->AddrMode = AMZ8_RREGWB;
 			}
 
@@ -256,6 +257,7 @@ static char GetRegW(const ExprNode* expr) {
 	if (IsEasyConst(expr, &v)) {
 		if (v >= 0 && v <= 3) {
 			// return a char with bits [1:0] representing the regW
+			// and all other bits being zeroes
 			return (char)v;
 		}
 		else {
@@ -272,14 +274,18 @@ static char GetRegW(const ExprNode* expr) {
 static char GetRegB(const ExprNode* expr) {
 	long v;
 	if (IsEasyConst(expr, &v)) {
-		if (v >= 0 && v <= 7) {
-			// return a char with bits [1:0] representing the regW and bit 2 representing B/W
-			char b = (v & 0b00000001) << 2;
-			v = (v >> 1) | b;
-			return (char)v;
+		// if it's a const then study has validated [0..3] so no need to check
+		return (char)v;
+	}
+	else if (expr->Op == EXPR_REGH || expr->Op == EXPR_REGL) {
+		// if it's still a register expression,
+		// then study has not validated [0..3] and we have an error
+		if (IsEasyConst(expr->Left, &v)) {
+			Error("RegB error (%ld is not 0..3)", v);
+			return 0xff;
 		}
 		else {
-			Error("Reg8 error (%ld is not 0..7)", v);
+			Error("RegB error (register expression is not a constant)");
 			return 0xff;
 		}
 	}
@@ -337,6 +343,37 @@ static void PutZ8_RW(const InsDesc* Ins) {
 	char r0W = GetRegW(Info.Expr1);
 	if (r0W != 0xff) {
 		Emit0(Ins->BaseCode | r0W);
+	}
+}
+
+static void PutZ8_RBW(const InsDesc* Ins) {
+
+	InsInfo Info;
+	EvalInfo(Ins, &Info);
+	if (Info.AddrMode == 0) return;
+
+	if ((Info.AddrMode & AMZ8_REGB) > 0) {
+		char opc =
+			Ins->ExtCode == 0 ? 0x28 : // dec
+			Ins->ExtCode == 1 ? 0x20 : // inc
+			0x00;
+		char r0B = GetRegB(Info.Expr1);
+		if (r0B != 0xff) {
+			Emit0(opc | r0B);
+		}
+	}
+	else if ((Info.AddrMode & AMZ8_REGW) > 0) {
+		char opc =
+			Ins->ExtCode == 0 ? 0x1c :
+			Ins->ExtCode == 1 ? 0x18 :
+			0x00;
+		char r0W = GetRegW(Info.Expr1);
+		if (r0W != 0xff) {
+			Emit0(opc | r0W);
+		}
+	}
+	else {
+		Error("Unsupported addressing mode %x.", Info.AddrMode);
 	}
 }
 

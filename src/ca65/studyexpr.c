@@ -1297,6 +1297,23 @@ static void StudyNearAddr (ExprNode* Expr, ExprDesc* D)
 
 
 
+static void StudyReg (ExprNode* Expr, ExprDesc* D)
+/* z8 */
+{
+    StudyExprInternal(Expr->Left, D); // contains the reg number
+
+    /* We can handle only const expressions */
+    if (ED_IsConst(D) && D->Val >= 0 && D->Val <= 3) {
+        char hl = Expr->Op == EXPR_REGH ? 0b00000100 : 0;
+        D->Val = (D->Val | hl);
+    }
+    else {
+        ED_SetError(D);
+    }
+}
+
+
+
 static void StudyExprInternal (ExprNode* Expr, ExprDesc* D)
 /* Study an expression tree and place the contents into D */
 {
@@ -1460,11 +1477,11 @@ static void StudyExprInternal (ExprNode* Expr, ExprDesc* D)
             break;
 
         case EXPR_REGH:
-            StudyByte0(Expr, D);
+            StudyReg(Expr, D);
             break;
 
         case EXPR_REGL:
-            StudyByte0(Expr, D);
+            StudyReg(Expr, D);
             break;
 
     	default:
