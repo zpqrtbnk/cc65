@@ -200,11 +200,15 @@ static void SetSys (const char* Sys)
         case TGT_NONE:
             break;
 
-		case TGT_Z8:
-			NewSymbol("__Z8__", 1);
-			break;
+       case TGT_Z8:
+            NewSymbol("__Z8__", 1);
+            break;
 
-		case TGT_MODULE:
+       case TGT_ZX:
+            NewSymbol("__ZX__", 1);
+            break;
+
+        case TGT_MODULE:
             AbEnd ("Cannot use 'module' as a target for the assembler");
             break;
 

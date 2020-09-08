@@ -411,7 +411,7 @@ void SegDone (void)
 
                     /* We cannot evaluate the expression now, leave the job for
                     ** the linker. However, we can check if the address size
-                    ** matches the fragment size. Mismatches are errors in
+                    ** matches the fragment size. Mismatches are errors in 
                     ** most situations.
                     */
                     if ((F->Len == 1 && ED.AddrSize > ADDR_SIZE_ZP)  ||

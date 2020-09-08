@@ -59,6 +59,7 @@ typedef enum {
     CPU_M740,                   /* Mitsubishi 740 series MCUs */
     CPU_4510,                   /* CPU of C65 */
 	CPU_Z8,
+    CPU_6502Z,
     CPU_COUNT                   /* Number of different CPUs */
 } cpu_t;
 
@@ -76,6 +77,7 @@ enum {
     CPU_ISET_M740       = 1 << CPU_M740,
     CPU_ISET_4510       = 1 << CPU_4510,
 	CPU_ISET_Z8         = 1 << CPU_Z8,
+    CPU_ISET_6502Z      = 1 << CPU_6502Z,
 };
 
 /* CPU used */

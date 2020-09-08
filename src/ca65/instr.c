@@ -61,6 +61,7 @@
 
 /* z8 */
 #include "z8.h"
+#include "6502z.h"
 
 /*****************************************************************************/
 /*                                 Forwards                                  */
@@ -1025,6 +1026,7 @@ static const InsTable* InsTabs[CPU_COUNT] = {
     0,                                  /* Mitsubishi 740 */
     (const InsTable*) &InsTab4510,
 	(const InsTable*) &InsTabZ8,
+    (const InsTable*) &InsTab6502Z,
 };
 const InsTable* InsTab = (const InsTable*) &InsTab6502;
 
@@ -1167,7 +1169,7 @@ static unsigned char Sweet16ExtBytes[AMSW16I_COUNT] = {
 
 
 
-static int EvalEA (const InsDesc* Ins, EffAddr* A)
+int EvalEA (const InsDesc* Ins, EffAddr* A)
 /* Evaluate the effective address. All fields in A will be valid after calling
 ** this function. The function returns true on success and false on errors.
 */
@@ -1209,9 +1211,9 @@ static int EvalEA (const InsDesc* Ins, EffAddr* A)
             } else {
                 ED.AddrSize = DataAddrSize;
                 /* If the default address size of the data segment is unequal
-                ** to zero page addressing, but zero page addressing is 
-                ** allowed by the instruction, mark all symbols in the 
-                ** expression tree. This mark will be checked at end of 
+                ** to zero page addressing, but zero page addressing is
+                ** allowed by the instruction, mark all symbols in the
+                ** expression tree. This mark will be checked at end of
                 ** assembly, and a warning is issued, if a zero page symbol
                 ** was guessed wrong here.
                 */
