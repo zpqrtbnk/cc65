@@ -1240,12 +1240,24 @@ CharAgain:
 
         case '+':
             NextChar ();
-            CurTok.Tok = TOK_PLUS;
+            if (C == '+') {
+                CurTok.Tok = TOK_PINC;
+                NextChar();
+            }
+            else {
+                CurTok.Tok = TOK_PLUS;
+            }
             return;
 
         case '-':
             NextChar ();
-            CurTok.Tok = TOK_MINUS;
+    		if (C == '-') {
+                CurTok.Tok = TOK_PDEC;
+                NextChar();
+    		}
+            else {
+                CurTok.Tok = TOK_MINUS;
+            }
             return;
 
         case '/':

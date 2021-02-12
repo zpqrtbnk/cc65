@@ -1302,6 +1302,8 @@ static void StudyReg (ExprNode* Expr, ExprDesc* D)
 {
     StudyExprInternal(Expr->Left, D); // contains the reg number
 
+    //printf("study: %s %x\n", Expr->Op == 0x51 ? "L" : "H", D->Val);
+
     /* We can handle only const expressions */
     if (ED_IsConst(D) && D->Val >= 0 && D->Val <= 3) {
         char hl = Expr->Op == EXPR_REGH ? 0b00000100 : 0;

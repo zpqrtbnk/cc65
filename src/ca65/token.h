@@ -123,6 +123,8 @@ typedef enum token_t {
 	TOK_REGW,      /* ` */
 	TOK_REGL,      /* `] */
     TOK_REGH,      /* `[ */
+	TOK_PDEC,      /* -- */
+	TOK_PINC,      /* ++ */
 
     /* The next ones are tokens for the pseudo instructions. Keep together! */
     TOK_FIRSTPSEUDO,

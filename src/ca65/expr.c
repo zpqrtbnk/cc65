@@ -1897,6 +1897,7 @@ ExprNode* GenRegExpr (unsigned Op)
 {
     ExprNode* Node = NewExprNode(Op);
     Node->Left = Expression();
+    //printf("gen: %s %x\n", Op == 0x51 ? "L" : "H", Node->Left->Op);
     return Node;
 }
 
