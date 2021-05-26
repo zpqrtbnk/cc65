@@ -627,7 +627,7 @@ static void PutZ8_STR_(const InsInfo* Info) {
 		Emit2(0xCC | r0B, Info->Expr2);
 	}
 	else if ((Info->AddrMode & AMZ8_RWA) > 0) {
-		char r0W = GetRegW(Info->Expr2);
+		char r0W = GetRegW(Info->Expr1);
 		Emit2(0xD0 | r0W, Info->Expr2);
 	}
 	else if ((Info->AddrMode & (AMZ8_RBN | AMZ8_RBNP | AMZ8_RBPN)) > 0) {
